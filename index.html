@@ -1,75 +1,86 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản Lý Cây Viết</title>
+
+<style>
+body {
+  background: #e5e5e5;
+  display: flex;
+  justify-content: center;
+  padding: 30px 0;
+  font-family: Arial, sans-serif;
+}
+
 .phone {
-    width: 390px;
-    background: white;
-    border-radius: 30px;
-    overflow: hidden;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  width: 390px;
+  background: white;
+  border-radius: 30px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
 }
 
 .header {
-    background: #4CAF50;
-    color: white;
-    padding: 15px;
-    text-align: center;
-    font-weight: bold;
-    font-size: 18px;
-    position: relative;
+  background: #4CAF50;
+  color: white;
+  padding: 15px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 18px;
+  position: relative;
 }
 
 .total {
-    position: absolute;
-    right: 15px;
-    top: 15px;
-    font-size: 14px;
+  position: absolute;
+  right: 15px;
+  top: 15px;
+  font-size: 14px;
 }
 
 .content {
-    padding: 15px;
+  padding: 15px;
 }
 
 input {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 10px;
-    border-radius: 12px;
-    border: 1px solid #ccc;
-    font-size: 14px;
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  font-size: 14px;
 }
 
 button {
-    width: 100%;
-    padding: 12px;
-    background: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 15px;
-    margin-bottom: 15px;
+  width: 100%;
+  padding: 12px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  margin-bottom: 15px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #45a049;
 }
 
 .pen-item {
-    background: #f5f5f5;
-    padding: 12px;
-    border-radius: 15px;
-    margin-bottom: 8px;
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 15px;
+  margin-bottom: 8px;
+  position: relative;
 }
 
-.note {
-    font-size: 12px;
-    color: gray;
-}
-
-#resultCount {
-    color: red;
-    font-weight: bold;
-    margin-bottom: 8px;
-}
-
-.suggestion {
-    background: #f5f5f5;
-    padding: 12px;
-    border-radius: 15px;
-    margin-bottom: 6px;
+.pen-item button {
+  width: auto;
+  padding: 5px 10px;
+  font-size: 12px;
+  margin-left: 5px;
 }
 </style>
 </head>
@@ -77,94 +88,93 @@ button {
 <body>
 
 <div class="phone">
+  <div class="header">
+    📒 Quản Lý Cây Viết
+    <div class="total" id="total">Tổng: 0</div>
+  </div>
 
-    <div class="header">
-        📒 Cây Viết
-        <span class="total">Tổng: <span id="totalCount">0</span></span>
-    </div>
+  <div class="content">
+    <input type="text" id="penName" placeholder="Tên cây viết...">
+    <input type="text" id="penNote" placeholder="Chú thích...">
+    <button onclick="addPen()">Thêm cây viết</button>
 
-    <div class="content">
+    <input type="text" id="search" placeholder="Tìm kiếm..." onkeyup="renderPens()">
 
-        <input type="text" id="addPen" placeholder="Tên cây viết...">
-        <input type="text" id="addNote" placeholder="Chú thích...">
-        <button onclick="addPen()">Thêm cây viết</button>
-
-        <input type="text" id="searchPen" placeholder="Tìm kiếm..." oninput="showSuggestions()">
-
-        <div id="resultCount"></div>
-        <div id="suggestions"></div>
-
-        <div id="penList"></div>
-
-    </div>
+    <div id="penList"></div>
+  </div>
 </div>
 
 <script>
-let pens = [];
+let pens = JSON.parse(localStorage.getItem("pens")) || [];
+let editIndex = -1;
+
+function saveData() {
+  localStorage.setItem("pens", JSON.stringify(pens));
+}
 
 function updateTotal() {
-    document.getElementById("totalCount").textContent = pens.length;
+  document.getElementById("total").innerText = "Tổng: " + pens.length;
 }
 
 function addPen() {
-    let name = document.getElementById("addPen").value.trim();
-    let note = document.getElementById("addNote").value.trim();
+  const name = document.getElementById("penName").value.trim();
+  const note = document.getElementById("penNote").value.trim();
 
-    if(name !== ""){
-        pens.push({name, note});
-        displayPens();
-        updateTotal();
-        document.getElementById("addPen").value = "";
-        document.getElementById("addNote").value = "";
+  if (name === "") {
+    alert("Bạn chưa nhập tên cây viết!");
+    return;
+  }
+
+  if (editIndex === -1) {
+    pens.push({name, note});
+  } else {
+    pens[editIndex] = {name, note};
+    editIndex = -1;
+  }
+
+  saveData();
+  renderPens();
+  document.getElementById("penName").value = "";
+  document.getElementById("penNote").value = "";
+}
+
+function editPen(index) {
+  document.getElementById("penName").value = pens[index].name;
+  document.getElementById("penNote").value = pens[index].note;
+  editIndex = index;
+}
+
+function deletePen(index) {
+  if (confirm("Bạn có chắc muốn xoá?")) {
+    pens.splice(index,1);
+    saveData();
+    renderPens();
+  }
+}
+
+function renderPens() {
+  const searchText = document.getElementById("search").value.toLowerCase();
+  const list = document.getElementById("penList");
+  list.innerHTML = "";
+
+  pens.forEach((pen, index) => {
+    if (pen.name.toLowerCase().includes(searchText)) {
+      list.innerHTML += `
+        <div class="pen-item">
+          <b>${pen.name}</b><br>
+          <small>${pen.note}</small><br><br>
+          <button onclick="editPen(${index})">Sửa</button>
+          <button onclick="deletePen(${index})" style="background:red;">Xoá</button>
+        </div>
+      `;
     }
+  });
+
+  updateTotal();
 }
 
-function displayPens(){
-    let list = document.getElementById("penList");
-    list.innerHTML = "";
-
-    pens.forEach(pen=>{
-        list.innerHTML += `
-            <div class="pen-item">
-                <strong>${pen.name}</strong>
-                ${pen.note ? `<div class="note">${pen.note}</div>` : ""}
-            </div>
-        `;
-    });
-}
-
-function showSuggestions(){
-    let input = document.getElementById("searchPen").value.toLowerCase();
-    let suggestions = document.getElementById("suggestions");
-    let resultCount = document.getElementById("resultCount");
-
-    suggestions.innerHTML = "";
-    resultCount.innerHTML = "";
-
-    if(input==="") return;
-
-    let matches = pens.filter(pen =>
-        pen.name.toLowerCase().includes(input)
-    );
-
-    resultCount.innerHTML = `Tìm thấy ${matches.length} kết quả trùng khớp`;
-
-    if(matches.length>0){
-        matches.forEach(pen=>{
-            suggestions.innerHTML += `
-                <div class="suggestion">
-                    <strong>${pen.name}</strong>
-                    ${pen.note ? `<div class="note">${pen.note}</div>` : ""}
-                </div>
-            `;
-        });
-    } else {
-        suggestions.innerHTML = `<div style="color:red;">❌ Chưa mua</div>`;
-    }
-}
+renderPens();
 </script>
 
 </body>
 </html>
-
-
